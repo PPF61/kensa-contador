@@ -2,118 +2,106 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Contador KENSA</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contador — DS-Digital</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Contador">
   <style>
-    html, body { margin:0; padding:0; height:100%; background:#000; color:#0f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .app { height: 100dvh; display: flex; flex-direction: column; overscroll-behavior: none; }
-    .blackbar { height: 58%; position: relative; background:#000; }
-    .labels { position: absolute; top: 8px; width: 100%; display:flex; justify-content: space-between; color:#0f0; opacity:.85; padding: 0 12px; font-weight:700; font-size: clamp(12px, 2.6vw, 18px); pointer-events:none; letter-spacing: .06em; }
-    .top { position:absolute; inset:0; display:grid; grid-template-columns: 1fr 1fr 1fr; align-items:center; justify-items:center; gap: 8px; padding: 6px 8px 48px; }
-    .digit { font-variant-numeric: tabular-nums; font-size: clamp(36px, 14vw, 120px); line-height: 1; letter-spacing: 0.04em; text-shadow: 0 0 8px rgba(0,255,0,.5); }
-    .controls { position:absolute; bottom: 8px; left: 0; right: 0; display:flex; justify-content:center; gap: 8px; }
-    .btn { background:#111; color:#0f0; border:1px solid #0f0; padding: 10px 14px; border-radius: 10px; font-weight:700; }
-    .touch { height: 42%; background:#2a2a2a; display:flex; align-items:center; justify-content:center; color:#ddd; user-select:none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; font-size: clamp(16px, 4vw, 22px); text-align:center; padding: 0 10px; }
-    .hint { opacity:.8 }
+    @font-face {
+      font-family: 'DSDigital';
+      src: url('./DS-DIGIT.TTF') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    :root {
+      --bg: #0b0b0b; --panel: #000; --touch: #333;
+      --amber: #FFD54F; --lift: -10px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg); color: var(--amber);
+      font-family: 'DSDigital', monospace;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .panel {
+      height: 50%; background: var(--panel);
+      padding: 16px; display: grid;
+      grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      align-items: flex-start; justify-items: center;
+    }
+    .box { display: flex; flex-direction: column; align-items: center; }
+    .label {
+      color: #b9b9b9; font-weight: 700; letter-spacing: .06em;
+      font-size: clamp(12px, 2.8vw, 20px); margin-bottom: 8px;
+    }
+    .digits {
+      transform: translateY(var(--lift));
+      font-size: clamp(48px, 14vw, 140px); line-height: 1;
+      letter-spacing: .08em;
+      text-shadow: 0 0 8px rgba(255,213,79,.25);
+      user-select: none;
+    }
+    .touch {
+      height: 50%; background: var(--touch);
+      display: flex; align-items: center; justify-content: center;
+      color: #ddd; font-size: clamp(18px, 5vw, 36px);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      user-select: none; cursor: pointer;
+    }
+    .controls {
+      position: fixed; left: 10px; bottom: 10px;
+      z-index: 10; display: flex; gap: 8px;
+    }
+    .btn {
+      background: #111; color: var(--amber);
+      border: 1px solid var(--amber);
+      padding: 8px 12px; border-radius: 10px;
+      font-weight: 700; cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <div class="blackbar">
-      <div class="labels"><span>KENSA</span><span>TOTAL</span></div>
-      <div class="top">
-        <div class="digit" id="c1">00</div>
-        <div class="digit" id="c2">00</div>
-        <div class="digit" id="c3">00</div>
-      </div>
-      <div class="controls">
-        <button class="btn" id="reset">Zerar</button>
-        <button class="btn" id="minus">-1</button>
-        <button class="btn" id="plus">+1</button>
-        <button class="btn" id="fs">Tela Cheia</button>
-      </div>
-    </div>
-    <div class="touch" id="touch">
-      Toque aqui para contar.<br>
-      <span class="hint">Dica: instale como app (Adicionar à tela inicial) para sumir a barra do navegador.</span>
-    </div>
+  <div class="panel">
+    <div class="box"><div class="label">KENSA OK</div><div class="digits" id="c1">00</div></div>
+    <div class="box"><div class="label">PALLET OUT</div><div class="digits" id="c2">00</div></div>
+    <div class="box"><div class="label">KENSA TOTAL</div><div class="digits" id="c3">000</div></div>
   </div>
-
-  <audio id="beep" preload="auto">
-    <source src="completed.wav" type="audio/wav" />
-  </audio>
-
+  <div class="touch" id="touch">TOUCH</div>
+  <audio id="completedMp3" src="completed.mp3" preload="auto"></audio>
+  <div class="controls">
+    <button class="btn" id="reset">Zerar</button>
+    <button class="btn" id="minus">-1</button>
+    <button class="btn" id="plus">+1</button>
+  </div>
   <script>
-    // ----- Estado dos contadores -----
-    let c1=0, c2=0, c3=0;
-
-    // Ajuste fino de posição dos dígitos (em px)
-    const ADJUST_Y_PX = -10; // pedido anterior
-    for (const id of ["c1","c2","c3"]) {
-      const el = document.getElementById(id);
-      el.style.position = "relative";
-      el.style.top = ADJUST_Y_PX + "px";
-    }
-
-    const el1 = document.getElementById("c1");
-    const el2 = document.getElementById("c2");
-    const el3 = document.getElementById("c3");
-    const touch = document.getElementById("touch");
-    const beep = document.getElementById("beep");
-
-    function fmt(n){ return n.toString().padStart(2,"0"); }
-    function render(){ el1.textContent = fmt(c1); el2.textContent = fmt(c2); el3.textContent = fmt(c3); }
-
-    function playBeep(){
-      try { beep.currentTime = 0; beep.play(); } catch(e) {}
-    }
-
-    function tick(delta=1){
-      // garante incrementos/dec por 1
-      c1 += delta;
-      // Loop + rollover de 60
-      while (c1 >= 60) { c1 -= 60; c2 += 1; playBeep(); }
-      while (c1 < 0)   { c1 += 60; c2 = Math.max(0, c2-1); }
-      if (c2 >= 60) { c2 = 0; c3 += 1; }
-      if (c2 < 0)   { c2 = 59; c3 = Math.max(0, c3-1); }
-      render();
-    }
-
-    // Botões (1 única vez)
-    document.getElementById("plus").addEventListener("click", () => tick(+1), {passive:true});
-    document.getElementById("minus").addEventListener("click", () => tick(-1), {passive:true});
-    document.getElementById("reset").addEventListener("click", () => { c1=c2=c3=0; render(); }, {passive:true});
-
-    // Área de toque (1 por toque)
-    touch.addEventListener("click", () => tick(+1), {passive:true});
-
-    async function goFullscreen(){
-      const root = document.documentElement;
-      if (!document.fullscreenElement && root.requestFullscreen) {
-        try { await root.requestFullscreen(); } catch(e) {}
-      }
-      if (screen.orientation && screen.orientation.lock) {
-        try { await screen.orientation.lock('landscape'); } catch(e) {}
-      }
-    }
-    document.getElementById("fs").addEventListener("click", goFullscreen, {passive:true});
-    // Primeiro toque também tenta fullscreen (sem repetir)
-    touch.addEventListener("click", goFullscreen, {once:true, passive:true});
-
-    // Service Worker para PWA/A2HS
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      });
-    }
-
+    let c1=0,c2=0;
+    const c1El=document.getElementById('c1');
+    const c2El=document.getElementById('c2');
+    const c3El=document.getElementById('c3');
+    function fmt(n,w){return String(n).padStart(w,'0');}
+    function totalPieces(){return Math.min(c1+c2*60,999);}
+    function render(){c1El.textContent=fmt(c1,2);c2El.textContent=fmt(c2,2);c3El.textContent=fmt(totalPieces(),3);}
     render();
+    function tick(delta){shortBeep();if(delta>0){c1+=1;while(c1>=60){c1-=60;c2+=1;playCompleted();}}else if(delta<0){c1-=1;while(c1<0){if(c2>0){c1+=60;c2-=1;}else{c1=0;c2=0;break;}}}render();}
+    const touch=document.getElementById('touch');let lastTs=0;const MIN_GAP=110;
+    function safeTap(delta){const now=performance.now();if(now-lastTs<MIN_GAP)return;lastTs=now;initAudio();tick(delta);}
+    touch.addEventListener('pointerdown',()=>safeTap(+1),{passive:true});
+    document.getElementById('plus').addEventListener('click',e=>{e.stopPropagation();safeTap(+1);});
+    document.getElementById('minus').addEventListener('click',e=>{e.stopPropagation();safeTap(-1);});
+    document.getElementById('reset').addEventListener('click',e=>{e.stopPropagation();c1=0;c2=0;render();});
+    let audioCtx=null,masterGain=null,audioReady=false;
+    function initAudio(){if(audioReady)return;try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){audioCtx=new AC();masterGain=audioCtx.createGain();masterGain.gain.value=0.6;masterGain.connect(audioCtx.destination);const o=audioCtx.createOscillator(),g=audioCtx.createGain();g.gain.value=0.0001;o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.01);}}catch(e){}audioReady=true;}
+    function shortBeep(){try{if(!audioCtx)return;const t0=audioCtx.currentTime;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.type='square';o.frequency.value=1200;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(0.45,t0+0.004);g.gain.linearRampToValueAtTime(0.0,t0+0.08);o.connect(g).connect(masterGain);o.start(t0);o.stop(t0+0.09);}catch(e){}}
+    function playCompleted(){const el=document.getElementById('completedMp3');if(el&&el.src){try{el.currentTime=0;el.play();}catch{}}}
+  </script>
+  <script>
+    if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./service-worker.js");});}
   </script>
 </body>
 </html>
