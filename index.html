@@ -4,158 +4,230 @@
   <meta charset="UTF-8" /> <!-- 4 -->
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/> <!-- 5 -->
   <title>Kensa Contador</title> <!-- 6 -->
-  <style> <!-- 7 -->
+  <style> /* ====== ESTILO ====== */ <!-- 7 -->
     @font-face { /* 8 */
       font-family: 'DS-Digital'; /* 9 */
       src: url('./DS-DIGIT.TTF') format('truetype'); /* 10 */
       font-weight: normal; /* 11 */
       font-style: normal; /* 12 */
-    } /* 13 */
+      font-display: swap; /* 13 */
+    } /* 14 */
 
-    body { /* 14 */
-      margin: 0; /* 15 */
-      background-color: #000; /* 16 */
-      color: #FFD54F; /* 17 */
-      font-family: 'DS-Digital', monospace; /* 18 */
-      height: 100vh; /* 19 */
-      display: flex; /* 20 */
-      flex-direction: column; /* 21 */
-      justify-content: space-between; /* 22 */
-      align-items: center; /* 23 */
-      user-select: none; /* 24 */
-    } /* 25 */
+    :root { /* 15 */
+      --bg:#000; /* 16 */
+      --touch:#333; /* 17 */
+      --amber:#FFD54F; /* 18 */
+    } /* 19 */
 
-    .counters { /* 26 */
-      flex: 1; /* 27 */
-      display: flex; /* 28 */
-      flex-direction: column; /* 29 */
-      justify-content: center; /* 30 */
-      align-items: center; /* 31 */
-      font-size: 6em; /* 32 */
-    } /* 33 */
+    html, body { height:100%; } /* 20 */
+    body { /* 21 */
+      margin:0; /* 22 */
+      background:var(--bg); /* 23 */
+      color:var(--amber); /* 24 */
+      font-family:'DS-Digital', monospace; /* 25 */
+      display:flex; /* 26 */
+      flex-direction:column; /* 27 */
+      user-select:none; /* 28 */
+      -webkit-tap-highlight-color:transparent; /* 29 */
+    } /* 30 */
 
-    .labels { /* 34 */
-      text-align: center; /* 35 */
-      margin-top: 10px; /* 36 */
-    } /* 37 */
+    /* Topo em 3 colunas fixas */ /* 31 */
+    .top { /* 32 */
+      flex:1; /* 33 */
+      display:grid; /* 34 */
+      grid-template-columns: repeat(3, minmax(0,1fr)); /* 35 */
+      align-items:center; /* 36 */
+      justify-items:center; /* 37 */
+      padding-top:6vh; /* 38 */
+      gap:min(2vw,16px); /* 39 */
+      width:100%; /* 40 */
+    } /* 41 */
 
-    .touch-area { /* 38 */
-      width: 100%; /* 39 */
-      height: 40%; /* 40 */
-      background: #333; /* 41 */
-    } /* 42 */
-
-    .footer { /* 43 */
-      font-size: 0.8em; /* 44 */
-      color: limegreen; /* 45 */
-      align-self: flex-end; /* 46 */
-      margin: 4px 8px; /* 47 */
+    .cell { text-align:center; } /* 42 */
+    .digit { /* 43 */
+      font-size: min(18vw, 160px); /* 44 */
+      line-height:1; /* 45 */
+      letter-spacing: 2px; /* 46 */
+      white-space:nowrap; /* 47 */
     } /* 48 */
-
-    button { /* 49 */
-      margin: 6px; /* 50 */
-      padding: 6px 12px; /* 51 */
-      font-size: 1em; /* 52 */
-      border-radius: 8px; /* 53 */
+    .label { /* 49 */
+      margin-top: 8px; /* 50 */
+      font-size: min(5vw, 28px); /* 51 */
+      letter-spacing: 1px; /* 52 */
+      white-space:nowrap; /* 53 */
     } /* 54 */
-  </style> <!-- 55 -->
-</head> <!-- 56 -->
-<body> <!-- 57 -->
-  <div class="counters"> <!-- 58 -->
-    <div id="c1">00</div> <!-- 59 -->
-    <div class="labels">KENSA OK</div> <!-- 60 -->
-    <div id="c2">00</div> <!-- 61 -->
-    <div class="labels">PALLET OUT</div> <!-- 62 -->
-    <div id="c3">000</div> <!-- 63 -->
-    <div class="labels">KENSA TOTAL</div> <!-- 64 -->
-  </div> <!-- 65 -->
 
-  <div class="touch-area" id="touch"></div> <!-- 66 -->
+    .touch-area { /* 55 */
+      height:40vh; /* 56 */
+      background:var(--touch); /* 57 */
+      touch-action:none; /* 58 */
+      width:100%; /* 59 */
+    } /* 60 */
 
-  <div> <!-- 67 -->
-    <button id="decrement">-1</button> <!-- 68 -->
-    <button id="fullscreen">Tela Cheia</button> <!-- 69 -->
-  </div> <!-- 70 -->
+    .controls { /* 61 */
+      display:flex; gap:10px; justify-content:center; align-items:center; /* 62 */
+      padding:8px 0; /* 63 */
+    } /* 64 */
+    button { /* 65 */
+      padding:6px 12px; border-radius:10px; border:1px solid #555; /* 66 */
+      background:#111; color:var(--amber); font-size:16px; /* 67 */
+    } /* 68 */
+    .footer { /* 69 */
+      color:limegreen; font-size:14px; /* 70 */
+      text-align:right; padding:4px 8px; /* 71 */
+    } /* 72 */
+  </style> <!-- 73 -->
+</head> <!-- 74 -->
+<body> <!-- 75 -->
 
-  <div class="footer">by FTS/c.gtp</div> <!-- 71 -->
+  <!-- Topo: 3 colunas com número + rótulo --> <!-- 76 -->
+  <div class="top"> <!-- 77 -->
+    <div class="cell"> <!-- 78 -->
+      <div id="c1" class="digit">00</div> <!-- 79 -->
+      <div class="label">KENSA OK</div> <!-- 80 -->
+    </div> <!-- 81 -->
+    <div class="cell"> <!-- 82 -->
+      <div id="c2" class="digit">00</div> <!-- 83 -->
+      <div class="label">PALLET OUT</div> <!-- 84 -->
+    </div> <!-- 85 -->
+    <div class="cell"> <!-- 86 -->
+      <div id="c3" class="digit">000</div> <!-- 87 -->
+      <div class="label">KENSA TOTAL</div> <!-- 88 -->
+    </div> <!-- 89 -->
+  </div> <!-- 90 -->
 
-  <script> <!-- 72 -->
-    let c1 = 0, c2 = 0, c3 = 0; // 73
-    let pressTimer; // 74
+  <!-- Área de toque para contar / reset 2s --> <!-- 91 -->
+  <div id="touch" class="touch-area" role="button" aria-label="Área de toque"></div> <!-- 92 -->
 
-    function updateDisplay() { // 75
-      document.getElementById('c1').textContent = String(c1).padStart(2, '0'); // 76
-      document.getElementById('c2').textContent = String(c2).padStart(2, '0'); // 77
-      document.getElementById('c3').textContent = String(c3).padStart(3, '0'); // 78
-    } // 79
+  <!-- Controles --> <!-- 93 -->
+  <div class="controls"> <!-- 94 -->
+    <button id="decrement" type="button">-1</button> <!-- 95 -->
+    <button id="fullscreen" type="button">Tela Cheia</button> <!-- 96 -->
+  </div> <!-- 97 -->
 
-    function playAudio(file) { // 80
-      const audio = new Audio(file); // 81
-      audio.play().catch(()=>{}); // 82
-    } // 83
+  <!-- Assinatura --> <!-- 98 -->
+  <div class="footer">by FTS/c.gtp</div> <!-- 99 -->
 
-    function increment() { // 84
-      c1++; // 85
-      if (c1 > 60) { // 86
-        c1 = 1; // 87
-        c2++; // 88
-        if (c2 > 99) { // 89
-          c2 = 0; // 90
-          c3++; // 91
-          if (c3 > 999) c3 = 0; // 92
-        } // 93
-      } // 94
+  <script> /* ====== LÓGICA ====== */ <!-- 100 -->
+    // Estado dos contadores /* 101 */
+    let c1 = 0, c2 = 0, c3 = 0; /* 102 */
 
-      // lógica de áudio corrigida (ordem certa) // 95
-      if (c1 === 60) { // 96
-        playAudio('completed.mp3'); // 97
-      } else if (c1 % 10 === 0) { // 98
-        playAudio('beep-10.mp3'); // 99
-      } else { // 100
-        playAudio('beep.mp3'); // 101
-      } // 102
+    // Elementos /* 103 */
+    const c1El = document.getElementById('c1'); /* 104 */
+    const c2El = document.getElementById('c2'); /* 105 */
+    const c3El = document.getElementById('c3'); /* 106 */
+    const touchArea = document.getElementById('touch'); /* 107 */
 
-      updateDisplay(); // 103
-    } // 104
+    // Atualiza display /* 108 */
+    function updateDisplay(){ /* 109 */
+      c1El.textContent = String(c1).padStart(2,'0'); /* 110 */
+      c2El.textContent = String(c2).padStart(2,'0'); /* 111 */
+      c3El.textContent = String(c3).padStart(3,'0'); /* 112 */
+    } /* 113 */
 
-    function decrement() { // 105
-      if (c1 > 0) { // 106
-        c1--; // 107
-      } else if (c2 > 0 || c3 > 0) { // 108
-        c1 = 59; // 109
-        if (c2 > 0) { // 110
-          c2--; // 111
-        } else if (c3 > 0) { // 112
-          c3--; // 113
-          c2 = 99; // 114
-        } // 115
-      } // 116
-      updateDisplay(); // 117
-    } // 118
+    // ------- Áudio: desbloqueio + reuso ------- /* 114 */
+    // Tenta 'completed.mp3'; se não existir, tenta 'pallet-completed.mp3'
+    const completionCandidates = ['completed.mp3','pallet-completed.mp3']; /* 115 */
+    let completionSrc = completionCandidates[0]; /* 116 */
 
-    // reset segurando 2s // 119
-    const touchArea = document.getElementById('touch'); // 120
-    touchArea.addEventListener('mousedown', () => { // 121
-      pressTimer = setTimeout(() => { // 122
-        c1 = 0; c2 = 0; c3 = 0; // 123
-        updateDisplay(); // 124
-      }, 2000); // 125
-    }); // 126
-    touchArea.addEventListener('mouseup', () => clearTimeout(pressTimer)); // 127
-    touchArea.addEventListener('mouseleave', () => clearTimeout(pressTimer)); // 128
+    const S = { /* 117 */
+      beep: new Audio('./beep.mp3'), /* 118 */
+      beep10: new Audio('./beep-10.mp3'), /* 119 */
+      completed: new Audio('./'+completionSrc), /* 120 */
+    }; /* 121 */
 
-    touchArea.addEventListener('click', increment); // 129
-    document.getElementById('decrement').addEventListener('click', decrement); // 130
+    // Na 1ª interação do usuário, "desbloqueia" o áudio em Android/iOS
+    let audioUnlocked = false; /* 122 */
+    async function unlockAudioOnce(){ /* 123 */
+      if (audioUnlocked) return; /* 124 */
+      audioUnlocked = true; /* 125 */
+      for (const key of Object.keys(S)) { /* 126 */
+        const a = S[key]; /* 127 */
+        try { a.volume = 0.0001; await a.play(); a.pause(); a.currentTime = 0; a.volume = 1.0; } catch(e){} /* 128 */
+      } /* 129 */
+      // Testa se 'completed.mp3' existe; se falhar, tenta 'pallet-completed.mp3'
+      try { await S.completed.play(); S.completed.pause(); S.completed.currentTime = 0; } /* 130 */
+      catch(e){ /* 131 */
+        try { S.completed = new Audio('./pallet-completed.mp3'); } catch(_){} /* 132 */
+      } /* 133 */
+    } /* 134 */
 
-    document.getElementById('fullscreen').addEventListener('click', () => { // 131
-      if (!document.fullscreenElement) { // 132
-        document.documentElement.requestFullscreen(); // 133
-      } else { // 134
-        document.exitFullscreen(); // 135
-      } // 136
-    }); // 137
+    function playOnce(key){ /* 135 */
+      const a = S[key]; if(!a) return; /* 136 */
+      try { a.pause(); a.currentTime = 0; } catch(e){} /* 137 */
+      a.play().catch(()=>{}); /* 138 */
+    } /* 139 */
 
-    updateDisplay(); // 138
-  </script> <!-- 139 -->
-</body> <!-- 140 -->
-</html> <!-- 141 -->
+    // ------- Incremento com som (60 > 10 > beep) ------- /* 140 */
+    function increment(){ /* 141 */
+      c1++; /* 142 */
+
+      if (c1 === 60) { /* 143 */
+        playOnce('completed'); /* 144 */
+      } else if (c1 % 10 === 0) { /* 145 */
+        playOnce('beep10'); /* 146 */
+      } else { /* 147 */
+        playOnce('beep'); /* 148 */
+      } /* 149 */
+
+      // Avanço dos contadores após mostrar 60 (mantido como antes) /* 150 */
+      if (c1 > 60) { /* 151 */
+        c1 = 1; /* 152 */
+        c2++; if (c2 > 99){ c2 = 0; c3++; if (c3 > 999) c3 = 0; } /* 153 */
+      } /* 154 */
+
+      updateDisplay(); /* 155 */
+    } /* 156 */
+
+    function decrement(){ /* 157 */
+      if (c1 > 0) { /* 158 */ c1--; /* 159 */
+      } else if (c2 > 0 || c3 > 0) { /* 160 */
+        c1 = 59; /* 161 */
+        if (c2 > 0) { c2--; } /* 162 */
+        else if (c3 > 0) { c3--; c2 = 99; } /* 163 */
+      } /* 164 */
+      updateDisplay(); /* 165 */
+    } /* 166 */
+
+    // Tap x Long-press (reset 2s) sem eventos duplicados /* 167 */
+    let pressTimer = null, downAt = 0; /* 168 */
+    const LONG_MS = 2000, TAP_MAX_MS = 500; /* 169 */
+
+    touchArea.addEventListener('pointerdown', (ev) => { /* 170 */
+      unlockAudioOnce(); /* 171 */
+      downAt = performance.now(); /* 172 */
+      clearTimeout(pressTimer); /* 173 */
+      pressTimer = setTimeout(() => { /* 174 */
+        c1 = 0; c2 = 0; c3 = 0; /* 175 */
+        updateDisplay(); /* 176 */
+      }, LONG_MS); /* 177 */
+    }); /* 178 */
+
+    touchArea.addEventListener('pointerup', (ev) => { /* 179 */
+      const dt = performance.now() - downAt; /* 180 */
+      clearTimeout(pressTimer); /* 181 */
+      if (dt < TAP_MAX_MS) increment(); /* 182 */
+    }); /* 183 */
+
+    touchArea.addEventListener('pointerleave', () => { /* 184 */
+      clearTimeout(pressTimer); /* 185 */
+    }); /* 186 */
+
+    // Botões /* 187 */
+    document.getElementById('decrement').addEventListener('click', decrement); /* 188 */
+    document.getElementById('fullscreen').addEventListener('click', () => { /* 189 */
+      if (!document.fullscreenElement) { /* 190 */
+        document.documentElement.requestFullscreen().catch(()=>{}); /* 191 */
+      } else { /* 192 */
+        document.exitFullscreen().catch(()=>{}); /* 193 */
+      } /* 194 */
+    }); /* 195 */
+
+    // Evitar menu de contexto na área de toque /* 196 */
+    touchArea.addEventListener('contextmenu', (e)=>e.preventDefault()); /* 197 */
+
+    // Inicializa /* 198 */
+    updateDisplay(); /* 199 */
+  </script> <!-- 200 -->
+</body> <!-- 201 -->
+</html> <!-- 202 -->
