@@ -10,19 +10,22 @@
       src: url('./DS-DIGIT.TTF') format('truetype');
       font-weight: normal;
       font-style: normal;
+      font-display: swap;
     }
 
+    html, body { height: 100%; }
     body {
       margin: 0;
       background-color: #000;
       color: #FFD54F;
       font-family: 'DS-Digital', monospace;
-      height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; /* reduz delays de tap */
     }
 
     .counters {
@@ -32,17 +35,24 @@
       justify-content: center;
       align-items: center;
       font-size: 6em;
+      line-height: 1;
     }
 
     .labels {
       text-align: center;
       margin-top: 10px;
+      font-size: 0.22em; /* rótulos menores, estáveis */
+      letter-spacing: 1px;
     }
 
     .touch-area {
       width: 100%;
       height: 40%;
       background: #333;
+      /* evita seleção acidental */
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     .footer {
@@ -52,16 +62,25 @@
       margin: 4px 8px;
     }
 
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0 0;
+    }
+
     button {
-      margin: 6px;
       padding: 6px 12px;
       font-size: 1em;
       border-radius: 8px;
+      border: 1px solid #555;
+      background: #111;
+      color: #FFD54F;
     }
+    button:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
-  <div class="counters">
+  <div class="counters" aria-live="off">
     <div id="c1">00</div>
     <div class="labels">KENSA OK</div>
     <div id="c2">00</div>
@@ -70,30 +89,49 @@
     <div class="labels">KENSA TOTAL</div>
   </div>
 
-  <div class="touch-area" id="touch"></div>
+  <div class="touch-area" id="touch" role="button" aria-label="Área de toque"></div>
 
-  <div>
-    <button id="decrement">-1</button>
-    <button id="fullscreen">Tela Cheia</button>
+  <div class="controls">
+    <button id="decrement" type="button">-1</button>
+    <button id="fullscreen" type="button">Tela Cheia</button>
   </div>
 
   <div class="footer">by FTS/c.gtp</div>
 
   <script>
+    // ---------- Estado dos contadores ----------
     let c1 = 0, c2 = 0, c3 = 0;
-    let pressTimer;
 
     function updateDisplay() {
-      document.getElementById('c1').textContent = String(c1).padStart(2, '0');
-      document.getElementById('c2').textContent = String(c2).padStart(2, '0');
-      document.getElementById('c3').textContent = String(c3).padStart(3, '0');
+      c1El.textContent = String(c1).padStart(2, '0');
+      c2El.textContent = String(c2).padStart(2, '0');
+      c3El.textContent = String(c3).padStart(3, '0');
     }
 
-    function playAudio(file) {
-      const audio = new Audio(file);
-      audio.play().catch(()=>{});
+    // ---------- Áudio (somente HTMLAudio) ----------
+    // Todos em minúsculas conforme seu repositório
+    const audioPool = {
+      beep: new Audio('./beep.mp3'),
+      beep10: new Audio('./beep-10.mp3'),
+      completed: new Audio('./completed.mp3'),
+    };
+    // Evita sobreposição: para o que estiver tocando antes de tocar o próximo
+    function stopAllAudio() {
+      for (const a of Object.values(audioPool)) {
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch (e) {}
+      }
+    }
+    function playOnce(kind) {
+      const a = audioPool[kind];
+      if (!a) return;
+      stopAllAudio();     // garante som único
+      a.play().catch(()=>{});
     }
 
+    // ---------- Lógica de incremento/áudio ----------
     function increment() {
       c1++;
       if (c1 > 60) {
@@ -106,13 +144,13 @@
         }
       }
 
-      // lógica de áudio corrigida
+      // SOM: 60 só completed; múltiplos de 10 (exceto 60) beep-10; demais beep
       if (c1 === 60) {
-        playAudio('completed.mp3');
+        playOnce('completed');
       } else if (c1 % 10 === 0) {
-        playAudio('beep-10.mp3');
+        playOnce('beep10');
       } else {
-        playAudio('beep.mp3');
+        playOnce('beep');
       }
 
       updateDisplay();
@@ -133,28 +171,60 @@
       updateDisplay();
     }
 
-    // reset segurando 2s na área de toque
+    // ---------- UI / Eventos sem duplicidade ----------
+    const c1El = document.getElementById('c1');
+    const c2El = document.getElementById('c2');
+    const c3El = document.getElementById('c3');
     const touchArea = document.getElementById('touch');
-    touchArea.addEventListener('mousedown', () => {
+
+    let pressTimer = null;
+    let pressedAt = 0;
+    const LONG_MS = 2000;
+    const TAP_MAX_MS = 500;
+
+    // Usamos Pointer Events para não ter duplicidade (touch + click)
+    touchArea.addEventListener('pointerdown', (ev) => {
+      pressedAt = performance.now();
+
+      // Inicia temporizador do reset 2s
+      clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
+        // RESET silencioso (sem som)
         c1 = 0; c2 = 0; c3 = 0;
         updateDisplay();
-      }, 2000);
+      }, LONG_MS);
     });
-    touchArea.addEventListener('mouseup', () => clearTimeout(pressTimer));
-    touchArea.addEventListener('mouseleave', () => clearTimeout(pressTimer));
 
-    touchArea.addEventListener('click', increment);
+    touchArea.addEventListener('pointerup', (ev) => {
+      const dt = performance.now() - pressedAt;
+      clearTimeout(pressTimer);
+
+      // Tap curto = incremento
+      if (dt < TAP_MAX_MS) {
+        increment();
+      }
+    });
+
+    // Se o dedo/cursor sair da área, cancela long-press
+    touchArea.addEventListener('pointerleave', () => {
+      clearTimeout(pressTimer);
+    });
+
+    // Botões
     document.getElementById('decrement').addEventListener('click', decrement);
 
     document.getElementById('fullscreen').addEventListener('click', () => {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+        document.documentElement.requestFullscreen().catch(()=>{});
       } else {
-        document.exitFullscreen();
+        document.exitFullscreen().catch(()=>{});
       }
     });
 
+    // Evita contexto/seleção acidentais
+    touchArea.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Inicializa
     updateDisplay();
   </script>
 </body>
