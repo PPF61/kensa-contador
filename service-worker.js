@@ -1,7 +1,7 @@
 // Service Worker do Kensa Contador
 // Versão 3 — força recache e inclui beep-10.mp3
 
-const CACHE_NAME = "contador-cache-v3";
+const CACHE_NAME = "contador-cache-v4";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
@@ -36,3 +36,4 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((resp) => resp || fetch(event.request))
   );
 });
+
