@@ -1,231 +1,161 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Kensa Contador</title>
-  <style>
-    @font-face {
-      font-family: 'DS-Digital';
-      src: url('./DS-DIGIT.TTF') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
+<!DOCTYPE html> <!-- 1 -->
+<html lang="pt-BR"> <!-- 2 -->
+<head> <!-- 3 -->
+  <meta charset="UTF-8" /> <!-- 4 -->
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/> <!-- 5 -->
+  <title>Kensa Contador</title> <!-- 6 -->
+  <style> <!-- 7 -->
+    @font-face { /* 8 */
+      font-family: 'DS-Digital'; /* 9 */
+      src: url('./DS-DIGIT.TTF') format('truetype'); /* 10 */
+      font-weight: normal; /* 11 */
+      font-style: normal; /* 12 */
+    } /* 13 */
 
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      background-color: #000;
-      color: #FFD54F;
-      font-family: 'DS-Digital', monospace;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation; /* reduz delays de tap */
-    }
+    body { /* 14 */
+      margin: 0; /* 15 */
+      background-color: #000; /* 16 */
+      color: #FFD54F; /* 17 */
+      font-family: 'DS-Digital', monospace; /* 18 */
+      height: 100vh; /* 19 */
+      display: flex; /* 20 */
+      flex-direction: column; /* 21 */
+      justify-content: space-between; /* 22 */
+      align-items: center; /* 23 */
+      user-select: none; /* 24 */
+    } /* 25 */
 
-    .counters {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-size: 6em;
-      line-height: 1;
-    }
+    .counters { /* 26 */
+      flex: 1; /* 27 */
+      display: flex; /* 28 */
+      flex-direction: column; /* 29 */
+      justify-content: center; /* 30 */
+      align-items: center; /* 31 */
+      font-size: 6em; /* 32 */
+    } /* 33 */
 
-    .labels {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 0.22em; /* rótulos menores, estáveis */
-      letter-spacing: 1px;
-    }
+    .labels { /* 34 */
+      text-align: center; /* 35 */
+      margin-top: 10px; /* 36 */
+    } /* 37 */
 
-    .touch-area {
-      width: 100%;
-      height: 40%;
-      background: #333;
-      /* evita seleção acidental */
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
+    .touch-area { /* 38 */
+      width: 100%; /* 39 */
+      height: 40%; /* 40 */
+      background: #333; /* 41 */
+    } /* 42 */
 
-    .footer {
-      font-size: 0.8em;
-      color: limegreen;
-      align-self: flex-end;
-      margin: 4px 8px;
-    }
+    .footer { /* 43 */
+      font-size: 0.8em; /* 44 */
+      color: limegreen; /* 45 */
+      align-self: flex-end; /* 46 */
+      margin: 4px 8px; /* 47 */
+    } /* 48 */
 
-    .controls {
-      display: flex;
-      gap: 8px;
-      margin: 8px 0 0;
-    }
+    button { /* 49 */
+      margin: 6px; /* 50 */
+      padding: 6px 12px; /* 51 */
+      font-size: 1em; /* 52 */
+      border-radius: 8px; /* 53 */
+    } /* 54 */
+  </style> <!-- 55 -->
+</head> <!-- 56 -->
+<body> <!-- 57 -->
+  <div class="counters"> <!-- 58 -->
+    <div id="c1">00</div> <!-- 59 -->
+    <div class="labels">KENSA OK</div> <!-- 60 -->
+    <div id="c2">00</div> <!-- 61 -->
+    <div class="labels">PALLET OUT</div> <!-- 62 -->
+    <div id="c3">000</div> <!-- 63 -->
+    <div class="labels">KENSA TOTAL</div> <!-- 64 -->
+  </div> <!-- 65 -->
 
-    button {
-      padding: 6px 12px;
-      font-size: 1em;
-      border-radius: 8px;
-      border: 1px solid #555;
-      background: #111;
-      color: #FFD54F;
-    }
-    button:active { transform: scale(0.98); }
-  </style>
-</head>
-<body>
-  <div class="counters" aria-live="off">
-    <div id="c1">00</div>
-    <div class="labels">KENSA OK</div>
-    <div id="c2">00</div>
-    <div class="labels">PALLET OUT</div>
-    <div id="c3">000</div>
-    <div class="labels">KENSA TOTAL</div>
-  </div>
+  <div class="touch-area" id="touch"></div> <!-- 66 -->
 
-  <div class="touch-area" id="touch" role="button" aria-label="Área de toque"></div>
+  <div> <!-- 67 -->
+    <button id="decrement">-1</button> <!-- 68 -->
+    <button id="fullscreen">Tela Cheia</button> <!-- 69 -->
+  </div> <!-- 70 -->
 
-  <div class="controls">
-    <button id="decrement" type="button">-1</button>
-    <button id="fullscreen" type="button">Tela Cheia</button>
-  </div>
+  <div class="footer">by FTS/c.gtp</div> <!-- 71 -->
 
-  <div class="footer">by FTS/c.gtp</div>
+  <script> <!-- 72 -->
+    let c1 = 0, c2 = 0, c3 = 0; // 73
+    let pressTimer; // 74
 
-  <script>
-    // ---------- Estado dos contadores ----------
-    let c1 = 0, c2 = 0, c3 = 0;
+    function updateDisplay() { // 75
+      document.getElementById('c1').textContent = String(c1).padStart(2, '0'); // 76
+      document.getElementById('c2').textContent = String(c2).padStart(2, '0'); // 77
+      document.getElementById('c3').textContent = String(c3).padStart(3, '0'); // 78
+    } // 79
 
-    function updateDisplay() {
-      c1El.textContent = String(c1).padStart(2, '0');
-      c2El.textContent = String(c2).padStart(2, '0');
-      c3El.textContent = String(c3).padStart(3, '0');
-    }
+    function playAudio(file) { // 80
+      const audio = new Audio(file); // 81
+      audio.play().catch(()=>{}); // 82
+    } // 83
 
-    // ---------- Áudio (somente HTMLAudio) ----------
-    // Todos em minúsculas conforme seu repositório
-    const audioPool = {
-      beep: new Audio('./beep.mp3'),
-      beep10: new Audio('./beep-10.mp3'),
-      completed: new Audio('./completed.mp3'),
-    };
-    // Evita sobreposição: para o que estiver tocando antes de tocar o próximo
-    function stopAllAudio() {
-      for (const a of Object.values(audioPool)) {
-        try {
-          a.pause();
-          a.currentTime = 0;
-        } catch (e) {}
-      }
-    }
-    function playOnce(kind) {
-      const a = audioPool[kind];
-      if (!a) return;
-      stopAllAudio();     // garante som único
-      a.play().catch(()=>{});
-    }
+    function increment() { // 84
+      c1++; // 85
+      if (c1 > 60) { // 86
+        c1 = 1; // 87
+        c2++; // 88
+        if (c2 > 99) { // 89
+          c2 = 0; // 90
+          c3++; // 91
+          if (c3 > 999) c3 = 0; // 92
+        } // 93
+      } // 94
 
-    // ---------- Lógica de incremento/áudio ----------
-    function increment() {
-      c1++;
-      if (c1 > 60) {
-        c1 = 1;
-        c2++;
-        if (c2 > 99) {
-          c2 = 0;
-          c3++;
-          if (c3 > 999) c3 = 0;
-        }
-      }
+      // lógica de áudio corrigida (ordem certa) // 95
+      if (c1 === 60) { // 96
+        playAudio('completed.mp3'); // 97
+      } else if (c1 % 10 === 0) { // 98
+        playAudio('beep-10.mp3'); // 99
+      } else { // 100
+        playAudio('beep.mp3'); // 101
+      } // 102
 
-      // SOM: 60 só completed; múltiplos de 10 (exceto 60) beep-10; demais beep
-      if (c1 === 60) {
-        playOnce('completed');
-      } else if (c1 % 10 === 0) {
-        playOnce('beep10');
-      } else {
-        playOnce('beep');
-      }
+      updateDisplay(); // 103
+    } // 104
 
-      updateDisplay();
-    }
+    function decrement() { // 105
+      if (c1 > 0) { // 106
+        c1--; // 107
+      } else if (c2 > 0 || c3 > 0) { // 108
+        c1 = 59; // 109
+        if (c2 > 0) { // 110
+          c2--; // 111
+        } else if (c3 > 0) { // 112
+          c3--; // 113
+          c2 = 99; // 114
+        } // 115
+      } // 116
+      updateDisplay(); // 117
+    } // 118
 
-    function decrement() {
-      if (c1 > 0) {
-        c1--;
-      } else if (c2 > 0 || c3 > 0) {
-        c1 = 59;
-        if (c2 > 0) {
-          c2--;
-        } else if (c3 > 0) {
-          c3--;
-          c2 = 99;
-        }
-      }
-      updateDisplay();
-    }
+    // reset segurando 2s // 119
+    const touchArea = document.getElementById('touch'); // 120
+    touchArea.addEventListener('mousedown', () => { // 121
+      pressTimer = setTimeout(() => { // 122
+        c1 = 0; c2 = 0; c3 = 0; // 123
+        updateDisplay(); // 124
+      }, 2000); // 125
+    }); // 126
+    touchArea.addEventListener('mouseup', () => clearTimeout(pressTimer)); // 127
+    touchArea.addEventListener('mouseleave', () => clearTimeout(pressTimer)); // 128
 
-    // ---------- UI / Eventos sem duplicidade ----------
-    const c1El = document.getElementById('c1');
-    const c2El = document.getElementById('c2');
-    const c3El = document.getElementById('c3');
-    const touchArea = document.getElementById('touch');
+    touchArea.addEventListener('click', increment); // 129
+    document.getElementById('decrement').addEventListener('click', decrement); // 130
 
-    let pressTimer = null;
-    let pressedAt = 0;
-    const LONG_MS = 2000;
-    const TAP_MAX_MS = 500;
+    document.getElementById('fullscreen').addEventListener('click', () => { // 131
+      if (!document.fullscreenElement) { // 132
+        document.documentElement.requestFullscreen(); // 133
+      } else { // 134
+        document.exitFullscreen(); // 135
+      } // 136
+    }); // 137
 
-    // Usamos Pointer Events para não ter duplicidade (touch + click)
-    touchArea.addEventListener('pointerdown', (ev) => {
-      pressedAt = performance.now();
-
-      // Inicia temporizador do reset 2s
-      clearTimeout(pressTimer);
-      pressTimer = setTimeout(() => {
-        // RESET silencioso (sem som)
-        c1 = 0; c2 = 0; c3 = 0;
-        updateDisplay();
-      }, LONG_MS);
-    });
-
-    touchArea.addEventListener('pointerup', (ev) => {
-      const dt = performance.now() - pressedAt;
-      clearTimeout(pressTimer);
-
-      // Tap curto = incremento
-      if (dt < TAP_MAX_MS) {
-        increment();
-      }
-    });
-
-    // Se o dedo/cursor sair da área, cancela long-press
-    touchArea.addEventListener('pointerleave', () => {
-      clearTimeout(pressTimer);
-    });
-
-    // Botões
-    document.getElementById('decrement').addEventListener('click', decrement);
-
-    document.getElementById('fullscreen').addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(()=>{});
-      } else {
-        document.exitFullscreen().catch(()=>{});
-      }
-    });
-
-    // Evita contexto/seleção acidentais
-    touchArea.addEventListener('contextmenu', (e) => e.preventDefault());
-
-    // Inicializa
-    updateDisplay();
-  </script>
-</body>
-</html>
+    updateDisplay(); // 138
+  </script> <!-- 139 -->
+</body> <!-- 140 -->
+</html> <!-- 141 -->
