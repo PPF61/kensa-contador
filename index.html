@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Kensa Contador</title>
   <style>
     @font-face {
@@ -81,6 +81,7 @@
 
   <script>
     let c1 = 0, c2 = 0, c3 = 0;
+    let pressTimer;
 
     function updateDisplay() {
       document.getElementById('c1').textContent = String(c1).padStart(2, '0');
@@ -105,13 +106,13 @@
         }
       }
 
-      // lógica de áudio corrigida (arquivos em minúsculas)
+      // lógica de áudio corrigida
       if (c1 === 60) {
-        playAudio('completed.mp3'); 
+        playAudio('completed.mp3');
       } else if (c1 % 10 === 0) {
         playAudio('beep-10.mp3');
       } else {
-        playAudio('beep.mp3'); 
+        playAudio('beep.mp3');
       }
 
       updateDisplay();
@@ -132,7 +133,18 @@
       updateDisplay();
     }
 
-    document.getElementById('touch').addEventListener('click', increment);
+    // reset segurando 2s na área de toque
+    const touchArea = document.getElementById('touch');
+    touchArea.addEventListener('mousedown', () => {
+      pressTimer = setTimeout(() => {
+        c1 = 0; c2 = 0; c3 = 0;
+        updateDisplay();
+      }, 2000);
+    });
+    touchArea.addEventListener('mouseup', () => clearTimeout(pressTimer));
+    touchArea.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+
+    touchArea.addEventListener('click', increment);
     document.getElementById('decrement').addEventListener('click', decrement);
 
     document.getElementById('fullscreen').addEventListener('click', () => {
