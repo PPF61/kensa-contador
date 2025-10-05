@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kensa Contador — LEGACY ESTÁVEL (2025-09-28)</title>
+  <meta name="theme-color" content="#0b0b0b" />
+  <!-- ⚠️ Esta é a versão de referência que você disse que funcionava bem: 
+       layout certo, sons ok, EXCETO que o beep-10 toca junto com o pallet-complete aos 60.  -->
+  <style>
+    /* ====== FONTES ====== */
+    @font-face{
+      font-family: 'DSDigital';
+      src: url('./DS-DIGIT.woff2') format('woff2'),
+           url('./DS-DIGIT.TTF') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root{
+      --bg:#0b0b0b;          /* fundo geral */
+      --panel:#000000;        /* painel superior */
+      --touch:#333333;        /* área de toque */
+      --amber:#FFD54F;        /* cor dos dígitos */
+      --text:#E0E0E0;         /* textos/labels */
+      --accent:#48ff73;       /* assinatura */
+      --lift:-10px;           /* ajuste vertical fino dos dígitos */
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; margin:0; background:var(--bg); color:var(--text); }
+    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
+    .app{ display:flex; flex-direction:column; height:100%; }
+
+    /* Painel superior */
+    .top{ flex:1 1 auto; background:var(--panel); display:grid; grid-template-rows:auto 1fr; }
+    .labels{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:8px 10px 0; font-weight:600; }
+    .labels span{ text-align:center; white-space:nowrap; }
+
+    /* Dígitos */
+    .digits{ position:relative; display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; gap:8px; padding:0 10px 6px; }
+    .digit-box{ display:flex; justify-content:center; align-items:flex-start; padding-top:4px; }
+
+    .dd{ font-family:'DSDigital', ui-monospace, monospace; line-height:0.85; color:var(--amber); letter-spacing:2px; transform: translateY(var(--lift)); }
+    .dd.c1{ font-size: clamp(72px, 14vw, 128px); }
+    .dd.c2, .dd.c3{ font-size: clamp(36px, 7vw, 64px); }
+
+    /* Área de toque */
+    .touch{ flex:1 1 auto; background:var(--touch); display:flex; align-items:center; justify-content:center; user-select:none; }
+    .touch .hint{ opacity:.8; }
+
+    /* Barra utilidades */
+    .bar{ position:fixed; inset:auto 8px 8px 8px; display:flex; gap:10px; justify-content:space-between; pointer-events:none; }
+    .bar > *{ pointer-events:auto; }
+    .sig{ margin-left:auto; font-size:12px; color:var(--accent); }
+    .btn{ background:#111; color:#eee; border:1px solid #333; border-radius:10px; padding:8px 12px; font-size:14px; }
+
+    /* C1 piscante entre 07-09 */
+    @keyframes pulseYG { 0%{ color:#48ff73 } 50%{ color:#FFD54F } 100%{ color:#48ff73 } }
+    .pre10{ animation:pulseYG 1s infinite steps(2, end); }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="top">
+      <div class="labels">
+        <span>KENSA OK</span>
+        <span>PALLET OUT</span>
+        <span>KENSA TOTAL</span>
+      </div>
+      <div class="digits">
+        <div class="digit-box"><div id="c1" class="dd c1">00</div></div>
+        <div class="digit-box"><div id="c2" class="dd c2">00</div></div>
+        <div class="digit-box"><div id="c3" class="dd c3">000</div></div>
+      </div>
+    </div>
+
+    <div class="touch" id="touch">
+      <div class="hint">Toque no cinza para contar • segure 2s para RESET</div>
+    </div>
+
+  </div>
+
+  <div class="bar">
+    <button class="btn" id="btnFS">Tela cheia</button>
+    <div class="sig">by FTS / c.gtp</div>
+  </div>
+
+  <script>
+    // ====== UTIL ======
+    const $ = (sel)=>document.querySelector(sel);
+    const pad = (n, len)=> String(n).padStart(len, '0');
+
+    // ====== ESTADO ======
+    let C1 = 0; // 0..60 (ao completar 60 -> zera e C2++)
+    let C2 = 0; // pallets (0..99)
+    let C3 = 0; // total 0..999
+    let audioUnlocked = false;
+
+    // ====== ÁUDIO ======
+    const sfx = {
+      tap: new Audio('./BEEP.mp3'),
+      ten: new Audio('./beep-10.mp3'),
+      pallet: new Audio('./pallet-complete.mp3')
+    };
+    for (const k in sfx) { sfx[k].preload = 'auto'; }
+
+    function unlockAudioOnce(){
+      if (audioUnlocked) return;
+      try { sfx.tap.play().then(()=>{ sfx.tap.pause(); sfx.tap.currentTime = 0; audioUnlocked = true; }); } catch(e){}
+    }
+
+    // ====== RENDER ======
+    const $c1 = $('#c1'), $c2 = $('#c2'), $c3 = $('#c3');
+    function render(){
+      $c1.textContent = pad(C1,2);
+      $c2.textContent = pad(C2,2);
+      $c3.textContent = pad(C3,3);
+      if (C1 >= 7 && C1 <= 9) $c1.classList.add('pre10'); else $c1.classList.remove('pre10');
+    }
+
+    function beepTap(){ try { if (audioUnlocked) sfx.tap.play(); } catch(e){} }
+    function beepTen(){ try { if (audioUnlocked) sfx.ten.play(); } catch(e){} }
+    function beepPallet(){ try { if (audioUnlocked) sfx.pallet.play(); } catch(e){} }
+
+    // ====== LÓGICA ======
+    function addOne(){
+      unlockAudioOnce();
+      C1++;
+      C3 = Math.min(999, C3+1);
+      beepTap();
+
+      if (C1 % 10 === 0) { // 10,20,30,40,50,60 (LEGACY: toca também no 60)
+        beepTen();
+      }
+      if (C1 === 60) {
+        beepPallet();
+        C1 = 0; // zera
+        C2 = (C2 + 1) % 100; // avança pallet
+      }
+      render();
+    }
+
+    function subOne(){
+      unlockAudioOnce();
+      if (C1 === 0 && C2 === 0 && C3 === 0) return;
+      if (C1 === 0){ C1 = 59; if (C2 > 0) C2--; }
+      else { C1--; }
+      if (C3 > 0) C3--;
+      render();
+    }
+
+    // ====== INTERAÇÕES ======
+    const touch = $('#touch');
+    let holdT = null;
+    function onPressStart(e){
+      e.preventDefault();
+      unlockAudioOnce();
+      holdT = setTimeout(()=>{ resetAll(); }, 2000);
+    }
+    function onPressEnd(e){
+      e.preventDefault();
+      if (holdT){ clearTimeout(holdT); holdT = null; addOne(); }
+    }
+
+    ['pointerdown','mousedown','touchstart'].forEach(ev=> touch.addEventListener(ev, onPressStart, {passive:false}));
+    ['pointerup','mouseup','touchend','touchcancel','mouseleave'].forEach(ev=> touch.addEventListener(ev, onPressEnd, {passive:false}));
+
+    // Teclado para testes no PC
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === '+') addOne();
+      if (e.key === '-') subOne();
+      if (e.key === 'r') resetAll();
+    });
+
+    function resetAll(){ C1=0; C2=0; C3=0; render(); }
+
+    // ====== FULLSCREEN ======
+    $('#btnFS').addEventListener('click', ()=>{
+      const el = document.documentElement;
+      if (!document.fullscreenElement){ el.requestFullscreen?.(); }
+      else { document.exitFullscreen?.(); }
+    });
+
+    // Inicializa
+    render();
+  </script>
+</body>
+</html>
