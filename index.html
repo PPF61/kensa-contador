@@ -1,233 +1,221 @@
-<!DOCTYPE html> <!-- 1 -->
-<html lang="pt-BR"> <!-- 2 -->
-<head> <!-- 3 -->
-  <meta charset="UTF-8" /> <!-- 4 -->
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/> <!-- 5 -->
-  <title>Kensa Contador</title> <!-- 6 -->
-  <style> /* ====== ESTILO ====== */ <!-- 7 -->
-    @font-face { /* 8 */
-      font-family: 'DS-Digital'; /* 9 */
-      src: url('./DS-DIGIT.TTF') format('truetype'); /* 10 */
-      font-weight: normal; /* 11 */
-      font-style: normal; /* 12 */
-      font-display: swap; /* 13 */
-    } /* 14 */
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kensa Contador — Checkpoint Estável (2025-10-05)</title>
+  <link rel="manifest" href="./manifest.json?v=2025-10-05" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <style>
+    /* ====== FONTES ====== */
+    @font-face{
+      font-family: 'DSDigital';
+      src: url('./DS-DIGIT.woff2?v=2025-10-05') format('woff2'),
+           url('./DS-DIGIT.TTF?v=2025-10-05') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
 
-    :root { /* 15 */
-      --bg:#000; /* 16 */
-      --touch:#333; /* 17 */
-      --amber:#FFD54F; /* 18 */
-    } /* 19 */
+    :root{
+      --bg:#0b0b0b;          /* fundo geral */
+      --panel:#000000;        /* painel superior */
+      --touch:#333333;        /* área de toque */
+      --amber:#FFD54F;        /* cor dos dígitos */
+      --text:#E0E0E0;         /* textos/labels */
+      --accent:#48ff73;       /* assinatura */
+      --lift:-10px;           /* ajuste vertical fino dos dígitos */
+    }
 
-    html, body { height:100%; } /* 20 */
-    body { /* 21 */
-      margin:0; /* 22 */
-      background:var(--bg); /* 23 */
-      color:var(--amber); /* 24 */
-      font-family:'DS-Digital', monospace; /* 25 */
-      display:flex; /* 26 */
-      flex-direction:column; /* 27 */
-      user-select:none; /* 28 */
-      -webkit-tap-highlight-color:transparent; /* 29 */
-    } /* 30 */
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; margin:0; background:var(--bg); color:var(--text); }
+    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
+    .app{ display:flex; flex-direction:column; height:100%; }
 
-    /* Topo em 3 colunas fixas */ /* 31 */
-    .top { /* 32 */
-      flex:1; /* 33 */
-      display:grid; /* 34 */
-      grid-template-columns: repeat(3, minmax(0,1fr)); /* 35 */
-      align-items:center; /* 36 */
-      justify-items:center; /* 37 */
-      padding-top:6vh; /* 38 */
-      gap:min(2vw,16px); /* 39 */
-      width:100%; /* 40 */
-    } /* 41 */
+    /* Painel superior (pretão) */
+    .top{ flex:1 1 auto; background:var(--panel); display:grid; grid-template-rows:auto 1fr; }
+    .labels{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:8px 10px 0; font-weight:600; }
+    .labels span{ text-align:center; white-space:nowrap; }
 
-    .cell { text-align:center; } /* 42 */
-    .digit { /* 43 */
-      font-size: min(18vw, 160px); /* 44 */
-      line-height:1; /* 45 */
-      letter-spacing: 2px; /* 46 */
-      white-space:nowrap; /* 47 */
-    } /* 48 */
-    .label { /* 49 */
-      margin-top: 8px; /* 50 */
-      font-size: min(5vw, 28px); /* 51 */
-      letter-spacing: 1px; /* 52 */
-      white-space:nowrap; /* 53 */
-    } /* 54 */
+    /* Container dos dígitos */
+    .digits{ position:relative; display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; gap:8px; padding:0 10px 6px; }
+    .digit-box{ display:flex; justify-content:center; align-items:flex-start; padding-top:4px; }
 
-    .touch-area { /* 55 */
-      height:40vh; /* 56 */
-      background:var(--touch); /* 57 */
-      touch-action:none; /* 58 */
-      width:100%; /* 59 */
-    } /* 60 */
+    .dd{ font-family:'DSDigital', ui-monospace, monospace; line-height:0.85; color:var(--amber); letter-spacing:2px; transform: translateY(var(--lift)); }
+    .dd.c1{ font-size: clamp(72px, 14vw, 128px); }
+    .dd.c2, .dd.c3{ font-size: clamp(36px, 7vw, 64px); }
 
-    .controls { /* 61 */
-      display:flex; gap:10px; justify-content:center; align-items:center; /* 62 */
-      padding:8px 0; /* 63 */
-    } /* 64 */
-    button { /* 65 */
-      padding:6px 12px; border-radius:10px; border:1px solid #555; /* 66 */
-      background:#111; color:var(--amber); font-size:16px; /* 67 */
-    } /* 68 */
-    .footer { /* 69 */
-      color:limegreen; font-size:14px; /* 70 */
-      text-align:right; padding:4px 8px; /* 71 */
-    } /* 72 */
-  </style> <!-- 73 -->
-</head> <!-- 74 -->
-<body> <!-- 75 -->
+    /* Área de toque (cinza) ocupa metade inferior */
+    .touch{ flex:1 1 auto; background:var(--touch); display:flex; align-items:center; justify-content:center; user-select:none; }
+    .touch .hint{ opacity:.8; }
 
-  <!-- Topo: 3 colunas com número + rótulo --> <!-- 76 -->
-  <div class="top"> <!-- 77 -->
-    <div class="cell"> <!-- 78 -->
-      <div id="c1" class="digit">00</div> <!-- 79 -->
-      <div class="label">KENSA OK</div> <!-- 80 -->
-    </div> <!-- 81 -->
-    <div class="cell"> <!-- 82 -->
-      <div id="c2" class="digit">00</div> <!-- 83 -->
-      <div class="label">PALLET OUT</div> <!-- 84 -->
-    </div> <!-- 85 -->
-    <div class="cell"> <!-- 86 -->
-      <div id="c3" class="digit">000</div> <!-- 87 -->
-      <div class="label">KENSA TOTAL</div> <!-- 88 -->
-    </div> <!-- 89 -->
-  </div> <!-- 90 -->
+    /* Barra utilidades */
+    .bar{ position:fixed; inset:auto 8px 8px 8px; display:flex; gap:10px; justify-content:space-between; pointer-events:none; }
+    .bar > *{ pointer-events:auto; }
+    .sig{ margin-left:auto; font-size:12px; color:var(--accent); }
+    .btn{ background:#111; color:#eee; border:1px solid #333; border-radius:10px; padding:8px 12px; font-size:14px; }
 
-  <!-- Área de toque para contar / reset 2s --> <!-- 91 -->
-  <div id="touch" class="touch-area" role="button" aria-label="Área de toque"></div> <!-- 92 -->
+    /* C1 piscante entre 07-09 */
+    @keyframes pulseYG { 0%{ color:#48ff73 } 50%{ color:#FFD54F } 100%{ color:#48ff73 } }
+    .pre10{ animation:pulseYG 1s infinite steps(2, end); }
 
-  <!-- Controles --> <!-- 93 -->
-  <div class="controls"> <!-- 94 -->
-    <button id="decrement" type="button">-1</button> <!-- 95 -->
-    <button id="fullscreen" type="button">Tela Cheia</button> <!-- 96 -->
-  </div> <!-- 97 -->
+    /* Diagnóstico discreto */
+    .diag{ position:fixed; left:8px; bottom:8px; font-size:11px; opacity:.7; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="top">
+      <div class="labels">
+        <span>KENSA OK</span>
+        <span>PALLET OUT</span>
+        <span>KENSA TOTAL</span>
+      </div>
+      <div class="digits">
+        <div class="digit-box"><div id="c1" class="dd c1">00</div></div>
+        <div class="digit-box"><div id="c2" class="dd c2">00</div></div>
+        <div class="digit-box"><div id="c3" class="dd c3">000</div></div>
+      </div>
+    </div>
 
-  <!-- Assinatura --> <!-- 98 -->
-  <div class="footer">by FTS/c.gtp</div> <!-- 99 -->
+    <div class="touch" id="touch">
+      <div class="hint">Toque em qualquer lugar cinza para contar • segure 2s para RESET</div>
+    </div>
+  </div>
 
-  <script> /* ====== LÓGICA ====== */ <!-- 100 -->
-    // Estado dos contadores /* 101 */
-    let c1 = 0, c2 = 0, c3 = 0; /* 102 */
+  <div class="bar">
+    <button class="btn" id="btnFS">Tela cheia</button>
+    <div class="sig">by FTS / c.gtp</div>
+  </div>
 
-    // Elementos /* 103 */
-    const c1El = document.getElementById('c1'); /* 104 */
-    const c2El = document.getElementById('c2'); /* 105 */
-    const c3El = document.getElementById('c3'); /* 106 */
-    const touchArea = document.getElementById('touch'); /* 107 */
+  <div class="diag" id="diag">v2025-10-05 • font=? • audio=? • sw=?</div>
 
-    // Atualiza display /* 108 */
-    function updateDisplay(){ /* 109 */
-      c1El.textContent = String(c1).padStart(2,'0'); /* 110 */
-      c2El.textContent = String(c2).padStart(2,'0'); /* 111 */
-      c3El.textContent = String(c3).padStart(3,'0'); /* 112 */
-    } /* 113 */
+  <script>
+    // ====== UTIL ======
+    const $ = (sel)=>document.querySelector(sel);
+    const pad = (n, len)=> String(n).padStart(len, '0');
 
-    // ------- Áudio: desbloqueio + reuso ------- /* 114 */
-    // Tenta 'completed.mp3'; se não existir, tenta 'pallet-completed.mp3'
-    const completionCandidates = ['completed.mp3','pallet-completed.mp3']; /* 115 */
-    let completionSrc = completionCandidates[0]; /* 116 */
+    // ====== ESTADO ======
+    let C1 = 0; // 0..60 (ao completar 60 -> zera e C2++)
+    let C2 = 0; // pallets (0..99)
+    let C3 = 0; // total 0..999
+    let audioUnlocked = false;
 
-    const S = { /* 117 */
-      beep: new Audio('./beep.mp3'), /* 118 */
-      beep10: new Audio('./beep-10.mp3'), /* 119 */
-      completed: new Audio('./'+completionSrc), /* 120 */
-    }; /* 121 */
+    // ====== ÁUDIO ======
+    const sfx = {
+      tap: new Audio('./BEEP.mp3?v=2025-10-05'),
+      ten: new Audio('./beep-10.mp3?v=2025-10-05'),
+      pallet: new Audio('./pallet-complete.mp3?v=2025-10-05')
+    };
+    for (const k in sfx) { sfx[k].preload = 'auto'; sfx[k].crossOrigin = 'anonymous'; }
 
-    // Na 1ª interação do usuário, "desbloqueia" o áudio em Android/iOS
-    let audioUnlocked = false; /* 122 */
-    async function unlockAudioOnce(){ /* 123 */
-      if (audioUnlocked) return; /* 124 */
-      audioUnlocked = true; /* 125 */
-      for (const key of Object.keys(S)) { /* 126 */
-        const a = S[key]; /* 127 */
-        try { a.volume = 0.0001; await a.play(); a.pause(); a.currentTime = 0; a.volume = 1.0; } catch(e){} /* 128 */
-      } /* 129 */
-      // Testa se 'completed.mp3' existe; se falhar, tenta 'pallet-completed.mp3'
-      try { await S.completed.play(); S.completed.pause(); S.completed.currentTime = 0; } /* 130 */
-      catch(e){ /* 131 */
-        try { S.completed = new Audio('./pallet-completed.mp3'); } catch(_){} /* 132 */
-      } /* 133 */
-    } /* 134 */
+    function unlockAudioOnce(){
+      if (audioUnlocked) return;
+      // Alguns Android exigem play() dentro de gesto de usuário
+      try { sfx.tap.play().then(()=>{ sfx.tap.pause(); sfx.tap.currentTime = 0; audioUnlocked = true; report(); }); } catch(e){}
+    }
 
-    function playOnce(key){ /* 135 */
-      const a = S[key]; if(!a) return; /* 136 */
-      try { a.pause(); a.currentTime = 0; } catch(e){} /* 137 */
-      a.play().catch(()=>{}); /* 138 */
-    } /* 139 */
+    // ====== RENDER ======
+    const $c1 = $('#c1'), $c2 = $('#c2'), $c3 = $('#c3');
+    function render(){
+      $c1.textContent = pad(C1,2);
+      $c2.textContent = pad(C2,2);
+      $c3.textContent = pad(C3,3);
+      // efeito pré-10: valores 7..9 piscam alternando verde/amarelo
+      if (C1 >= 7 && C1 <= 9) $c1.classList.add('pre10'); else $c1.classList.remove('pre10');
+    }
 
-    // ------- Incremento com som (60 > 10 > beep) ------- /* 140 */
-    function increment(){ /* 141 */
-      c1++; /* 142 */
+    function beepTap(){ try { if (audioUnlocked) sfx.tap.play(); } catch(e){} }
+    function beepTen(){ try { if (audioUnlocked) sfx.ten.play(); } catch(e){} }
+    function beepPallet(){ try { if (audioUnlocked) sfx.pallet.play(); } catch(e){} }
 
-      if (c1 === 60) { /* 143 */
-        playOnce('completed'); /* 144 */
-      } else if (c1 % 10 === 0) { /* 145 */
-        playOnce('beep10'); /* 146 */
-      } else { /* 147 */
-        playOnce('beep'); /* 148 */
-      } /* 149 */
+    // ====== LÓGICA DE CONTAGEM ======
+    function addOne(){
+      unlockAudioOnce();
+      C1++;
+      C3 = Math.min(999, C3+1);
 
-      // Avanço dos contadores após mostrar 60 (mantido como antes) /* 150 */
-      if (c1 > 60) { /* 151 */
-        c1 = 1; /* 152 */
-        c2++; if (c2 > 99){ c2 = 0; c3++; if (c3 > 999) c3 = 0; } /* 153 */
-      } /* 154 */
+      // som toque sempre
+      beepTap();
 
-      updateDisplay(); /* 155 */
-    } /* 156 */
+      if (C1 < 60){
+        if (C1 % 10 === 0) { // 10,20,30,40,50
+          beepTen();
+        }
+      } else if (C1 === 60) {
+        // chegar em 60: tocar APENAS pallet-complete
+        beepPallet();
+        C1 = 0; // zera
+        C2 = (C2 + 1) % 100; // avança pallet
+      }
+      render();
+    }
 
-    function decrement(){ /* 157 */
-      if (c1 > 0) { /* 158 */ c1--; /* 159 */
-      } else if (c2 > 0 || c3 > 0) { /* 160 */
-        c1 = 59; /* 161 */
-        if (c2 > 0) { c2--; } /* 162 */
-        else if (c3 > 0) { c3--; c2 = 99; } /* 163 */
-      } /* 164 */
-      updateDisplay(); /* 165 */
-    } /* 166 */
+    function subOne(){
+      unlockAudioOnce();
+      if (C1 === 0 && C2 === 0 && C3 === 0) return;
+      if (C1 === 0){ C1 = 59; if (C2 > 0) C2--; }
+      else { C1--; }
+      if (C3 > 0) C3--;
+      render();
+    }
 
-    // Tap x Long-press (reset 2s) sem eventos duplicados /* 167 */
-    let pressTimer = null, downAt = 0; /* 168 */
-    const LONG_MS = 2000, TAP_MAX_MS = 500; /* 169 */
+    // ====== INTERAÇÕES ======
+    const touch = $('#touch');
+    let holdT = null;
 
-    touchArea.addEventListener('pointerdown', (ev) => { /* 170 */
-      unlockAudioOnce(); /* 171 */
-      downAt = performance.now(); /* 172 */
-      clearTimeout(pressTimer); /* 173 */
-      pressTimer = setTimeout(() => { /* 174 */
-        c1 = 0; c2 = 0; c3 = 0; /* 175 */
-        updateDisplay(); /* 176 */
-      }, LONG_MS); /* 177 */
-    }); /* 178 */
+    function onPressStart(e){
+      e.preventDefault();
+      unlockAudioOnce();
+      // toque curto adiciona 1; segurar 2s -> reset
+      holdT = setTimeout(()=>{ resetAll(); }, 2000);
+    }
+    function onPressEnd(e){
+      e.preventDefault();
+      if (holdT){ clearTimeout(holdT); holdT = null; addOne(); }
+    }
 
-    touchArea.addEventListener('pointerup', (ev) => { /* 179 */
-      const dt = performance.now() - downAt; /* 180 */
-      clearTimeout(pressTimer); /* 181 */
-      if (dt < TAP_MAX_MS) increment(); /* 182 */
-    }); /* 183 */
+    ['pointerdown','mousedown','touchstart'].forEach(ev=> touch.addEventListener(ev, onPressStart, {passive:false}));
+    ['pointerup','mouseup','touchend','touchcancel','mouseleave'].forEach(ev=> touch.addEventListener(ev, onPressEnd, {passive:false}));
 
-    touchArea.addEventListener('pointerleave', () => { /* 184 */
-      clearTimeout(pressTimer); /* 185 */
-    }); /* 186 */
+    // Teclado para testes no PC
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === '+') addOne();
+      if (e.key === '-') subOne();
+      if (e.key === 'r') resetAll();
+    });
 
-    // Botões /* 187 */
-    document.getElementById('decrement').addEventListener('click', decrement); /* 188 */
-    document.getElementById('fullscreen').addEventListener('click', () => { /* 189 */
-      if (!document.fullscreenElement) { /* 190 */
-        document.documentElement.requestFullscreen().catch(()=>{}); /* 191 */
-      } else { /* 192 */
-        document.exitFullscreen().catch(()=>{}); /* 193 */
-      } /* 194 */
-    }); /* 195 */
+    function resetAll(){ C1=0; C2=0; C3=0; render(); }
 
-    // Evitar menu de contexto na área de toque /* 196 */
-    touchArea.addEventListener('contextmenu', (e)=>e.preventDefault()); /* 197 */
+    // ====== FULLSCREEN ======
+    $('#btnFS').addEventListener('click', ()=>{
+      const el = document.documentElement;
+      if (!document.fullscreenElement){ el.requestFullscreen?.(); }
+      else { document.exitFullscreen?.(); }
+    });
 
-    // Inicializa /* 198 */
-    updateDisplay(); /* 199 */
-  </script> <!-- 200 -->
-</body> <!-- 201 -->
-</html> <!-- 202 -->
+    // ====== DIAGNÓSTICO ======
+    const diag = $('#diag');
+    function report(){
+      const fontReady = document.fonts && document.fonts.check ? document.fonts.check("1em DSDigital") : 'n/a';
+      const sw = (navigator.serviceWorker && navigator.serviceWorker.controller) ? 'on' : 'off';
+      diag.textContent = `v2025-10-05 • font=${fontReady} • audio=${audioUnlocked?'ok':'?'} • sw=${sw}`;
+    }
+
+    // Garantir fonte carregada e re-render
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(()=>{ report(); render(); });
+    }
+
+    // Inicializa
+    render(); report();
+
+    // ====== Atualização do SW (se existir): força pegar a última versão do index ======
+    if ('serviceWorker' in navigator){
+      navigator.serviceWorker.addEventListener('controllerchange', ()=> report());
+      // Não registramos aqui para não conflitar com quem já usa service-worker.js no projeto.
+      // O manifest inclui querystring de versão para ajudar a bustar cache.
+    }
+  </script>
+</body>
+</html>
