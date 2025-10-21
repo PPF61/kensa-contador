@@ -11,7 +11,7 @@ const FILES_TO_CACHE = [
   "./DS-DIGIT.woff2",
   "./DS-DIGIT.TTF",
   "./beep.mp3",
-  "./beep-10.mp3",
+  "./SOM DE ZEBRA-10.mp3",
   "./pallet-complete.mp3"
 ];
 
@@ -36,4 +36,5 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((resp) => resp || fetch(event.request))
   );
 });
+
 
