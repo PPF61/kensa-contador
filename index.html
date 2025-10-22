@@ -25,7 +25,6 @@
       --amber: #FFD54F;
       --red: #FF0000;
       --green: #00FF00;
-      --blue: #4F9BFF; /* NOVO: Cor azul */
       --lift: -13px;
     }
 
@@ -191,10 +190,10 @@
         from { color: var(--amber); text-shadow: 0 0 8px rgba(255,213,79,.25); }
         to { color: var(--red); text-shadow: 0 0 8px rgba(255,0,0,.25); }
     }
-    /* Azul nos múltiplos de 10 */
-    .flash-blue-color {
-        color: var(--blue) !important;
-        text-shadow: 0 0 8px rgba(79,155,255,.5);
+    /* VERDE nos múltiplos de 10 (10..50) */
+    .flash-green-color {
+        color: var(--green) !important;
+        text-shadow: 0 0 8px rgba(0,255,0,.5);
     }
   </style>
 </head>
@@ -222,8 +221,8 @@
   <!-- NOVO: beep a cada toque -->
   <audio id="beepTapMp3" src="beep.mp3" preload="auto" playsinline></audio>
   <!-- NOVO: beep a cada 10 do C1 -->
-  <!-- <audio id="beep10Mp3" src="beep-10.mp3" preload="auto" playsinline></audio> -->
   <audio id="beep10Mp3" src="SOM DE ZEBRA-10.mp3" preload="auto" playsinline></audio>
+
   <div class="controls">
     <button class="btn" id="reset">Zerar</button>
     <button class="btn" id="minus">-1</button>
@@ -258,6 +257,10 @@
       c1El.textContent = fmt(c1, 2);
       c2El.textContent = fmt(c2, 2);
       c3El.textContent = fmt(c3, 3);
+
+      // estados visuais coerentes (inclusive após restore)
+      c1El.classList.toggle('flash-amber-red', (c1 >= 7 && c1 <= 9));
+      c1El.classList.toggle('flash-green-color', (c1 % 10 === 0 && c1 !== 0 && c1 !== 60));
     }
     render();
 
@@ -317,19 +320,15 @@
       } catch (e) { console.error("Erro ao tentar desbloquear áudio:", e); }
     }
 
-    function playCompleted() {
-      if (!completedAudio) return;
-      try { completedAudio.currentTime = 0; const p = completedAudio.play(); p && p.catch(()=>{}); } catch {}
-    }
     function playPalletComplete() {
       if (!palletCompleteAudio) return;
       try { palletCompleteAudio.currentTime = 0; const p = palletCompleteAudio.play(); p && p.catch(()=>{}); } catch {}
     }
-    function playBeepTap() { // novo
+    function playBeepTap() {
       if (!beepTapAudio) return;
       try { beepTapAudio.currentTime = 0; const p = beepTapAudio.play(); p && p.catch(()=>{}); } catch {}
     }
-    function playBeep10() { // novo
+    function playBeep10() {
       if (!beep10Audio) return;
       try { beep10Audio.currentTime = 0; const p = beep10Audio.play(); p && p.catch(()=>{}); } catch {}
     }
@@ -341,35 +340,89 @@
       cb();
     }
 
+    // ====== AUTO-SAVE / RESTORE ======
+    const STORAGE_KEY = 'kensa-contador-state:v1';
+    const STORAGE_BACKUP_KEY = 'kensa-contador-state-backup:v1';
+
+    function saveState() {
+      const payload = { c1, c2, c3, savedAt: new Date().toISOString(), app: 'kensa-contador' };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(payload)); // backup
+      } catch (e) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ c1, c2, c3 })); } catch {}
+        console.warn('Falha ao salvar estado:', e);
+      }
+    }
+    let __saveTimer = null;
+    function saveStateDebounced() { clearTimeout(__saveTimer); __saveTimer = setTimeout(saveState, 200); }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_BACKUP_KEY);
+      if (!raw) return null;
+      try {
+        const data = JSON.parse(raw);
+        if ([data.c1, data.c2, data.c3].every(n => Number.isFinite(n))) return data;
+      } catch {}
+      return null;
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      Object.assign(t.style, {
+        position:'fixed', left:'50%', bottom:'16px', transform:'translateX(-50%)',
+        background:'rgba(0,0,0,.85)', color:'#0f0', padding:'8px 12px',
+        borderRadius:'10px', fontSize:'14px', zIndex:9999
+      });
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), 1800);
+    }
+
+    (function bootstrapRestore(){
+      const restored = loadState();
+      if (restored) {
+        c1 = restored.c1; c2 = restored.c2; c3 = restored.c3;
+        render();
+        showToast(`Recuperei: C1=${c1} C2=${c2} C3=${c3}`);
+      } else {
+        render();
+      }
+    })();
+
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+    window.addEventListener('beforeunload', saveState);
+
+    // ===== Lógica de contagem =====
     function onIncrementTap() {
-      shortBeep();     // mantém teu beep sintético
-      playBeepTap();   // + MP3 por toque (mais volume)
+      shortBeep();     // beep sintético
+      playBeepTap();   // MP3 do toque
       c1++;
 
-      const lastDigit = c1 % 10;
-      if (lastDigit === 7 || lastDigit === 8 || lastDigit === 9) {
-          c1El.classList.add('flash-amber-red');
-      } else {
-          c1El.classList.remove('flash-amber-red');
-      }
-
-      // múltiplos de 10 → cor azul + som de 10
-      if (c1 > 0 && c1 % 10 === 0) {
-          c1El.classList.add('flash-blue-color');
-          playBeep10(); // 🔊 novo
-      } else {
-          c1El.classList.remove('flash-blue-color');
-      }
-
-      if (c1 >= 60) {
+      // Checa 60 PRIMEIRO para NÃO tocar beep-10 junto
+      if (c1 === 60) {
         c1 = 0;
         c2++;
         playPalletComplete();
         flashPanel();
         if (c2 >= 60) c2 = 0;
+      } else {
+        // efeitos 07–09
+        const lastDigit = c1 % 10;
+        c1El.classList.toggle('flash-amber-red', (lastDigit === 7 || lastDigit === 8 || lastDigit === 9));
+
+        // múltiplos de 10 → VERDE + som de 10 (exceto 60)
+        if (c1 > 0 && c1 % 10 === 0) {
+          c1El.classList.add('flash-green-color');
+          playBeep10();
+        } else {
+          c1El.classList.remove('flash-green-color');
+        }
       }
+
       c3 = (c3 + 1) % 1000;
       render();
+      saveStateDebounced();
     }
 
     function flashPanel() {
@@ -385,11 +438,12 @@
         if (c2 > 0) { c1 = 59; c2--; } else { c1 = 0; c2 = 0; }
       }
       c3 = (c3 - 1 + 1000) % 1000;
-      c1El.classList.remove('flash-amber-red', 'flash-blue-color');
+      c1El.classList.remove('flash-amber-red', 'flash-green-color');
       render();
+      saveStateDebounced();
     }
 
-    // Listeners (mantendo o safeTap e -1)
+    // Listeners
     touch.addEventListener('pointerdown', () => safeTap(onIncrementTap), { passive: true });
     document.getElementById('minus').addEventListener('click', e => safeTap(() => onDecrementTap(e)));
 
@@ -402,8 +456,10 @@
     resetBtn.addEventListener('click', (e) => { e.stopPropagation(); modal.hidden = false; });
     btnYes.addEventListener('click', (e) => {
       e.stopPropagation();
-      c1 = 0; c2 = 0; c3 = 0; render();
-      c1El.classList.remove('flash-amber-red', 'flash-blue-color');
+      c1 = 0; c2 = 0; c3 = 0;
+      c1El.classList.remove('flash-amber-red', 'flash-green-color');
+      render();
+      saveState(); // grava zerado
       modal.hidden = true;
     });
     btnNo.addEventListener('click', (e) => { e.stopPropagation(); modal.hidden = true; });
@@ -489,3 +545,4 @@
 </body>
 </html>
 
+    
