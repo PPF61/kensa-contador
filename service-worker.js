@@ -1,128 +1,92 @@
-// service-worker.js — Kensa Contador (offline-first, sem reload forçado)
-
-// ⬇️ Aumente a versão quando trocar a lista de assets
-const CACHE_VERSION = 'v5';
-const CACHE_NAME = `contador-cache-${CACHE_VERSION}`;
-
-// ⬇️ Ajuste NOME/PASTA dos ícones conforme seu repo
+// Service Worker — Kensa Contador (v5) — com suporte a Range Requests (MP3 offline)
+const CACHE_NAME = 'contador-cache-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './service-worker.js',
   './DS-DIGIT.woff2',
   './beep.mp3',
   './SOM DE ZEBRA-10.mp3',
   './pallet-complete.mp3',
   './completed.mp3',
-  './icons-192.png',   // ↩︎ troque se o nome for diferente
-  './icons-512.png'    // ↩︎ troque se o nome for diferente
+  './service-worker.js'
 ];
 
-// Pré-cache na instalação (sem skipWaiting para não forçar reload)
+// Instalação — cacheia todos os arquivos listados
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS))
-      .catch((err) => {
-        // Se algum asset falhar, não quebra a instalação inteira
-        console.warn('[SW] Falha no addAll:', err);
-      })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+  self.skipWaiting();
 });
 
-// Ativar e limpar caches antigos com o mesmo prefixo
+// Ativação — remove caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((k) => k.startsWith('contador-cache-') && k !== CACHE_NAME)
-          .map((k) => caches.delete(k))
-      );
-      // Não chamamos clients.claim() para evitar refresh imediato.
-      // O novo SW assume quando as abas forem abertas novamente.
-    })()
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)))
+    )
   );
+  self.clients.claim();
 });
 
-// Estratégias:
-// - Navegação (requests de página): Network-first → fallback cache → fallback index.html
-// - Estáticos do ASSETS: Cache-first
-// - Outros GET same-origin: Stale-while-revalidate simples
+// Intercepta requisições
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const rangeHeader = req.headers.get('Range');
 
-  // Só lida com GET e mesma origem
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-
-  // 1) Navegação (endereços de página)
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      (async () => {
-        try {
-          const net = await fetch(req);
-          // Opcional: guarda no cache uma cópia do index se vier dele
-          return net;
-        } catch {
-          // Sem rede → tenta cache do index e por fim um fallback simples
-          const cache = await caches.open(CACHE_NAME);
-          const cachedIndex = await cache.match('./index.html');
-          return cachedIndex || new Response('<h1>Offline</h1>', {
-            headers: { 'Content-Type': 'text/html; charset=UTF-8' }
-          });
-        }
-      })()
-    );
-    return;
-  }
-
-  // 2) Se for um dos assets pré-cacheados → Cache-first
-  const url = new URL(req.url);
-  const pathname = url.pathname.startsWith('/') ? '.' + url.pathname : url.pathname;
-  if (ASSETS.includes(pathname)) {
-    event.respondWith(
-      (async () => {
-        const cache = await caches.open(CACHE_NAME);
-        const cached = await cache.match(req);
-        if (cached) return cached;
-        try {
-          const net = await fetch(req);
-          // Atualiza cache
-          cache.put(req, net.clone());
-          return net;
-        } catch {
-          return cached || Response.error();
-        }
-      })()
-    );
-    return;
-  }
-
-  // 3) Demais GET same-origin → Stale-while-revalidate simples
-  event.respondWith(
-    (async () => {
+  // === 1️⃣ Trata Range Requests (MP3 / vídeo offline) ===
+  if (rangeHeader) {
+    event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(req);
-      const networkPromise = fetch(req)
-        .then((res) => {
-          // Evita cachear respostas opaque no mesmo host sem necessidade
-          if (res && res.status === 200 && res.type === 'basic') {
-            cache.put(req, res.clone());
-          }
-          return res;
-        })
-        .catch(() => null);
-      // Prioriza resposta rápida do cache; atualiza em background
-      return cached || networkPromise || Response.error();
-    })()
-  );
-});
+      let res = await cache.match(req, { ignoreSearch: true });
 
-// Opcional: permitir upgrade controlado (se um dia quiser forçar ativação via postMessage)
-self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING_NOW') {
-    self.skipWaiting();
+      if (!res) {
+        const url = new URL(req.url);
+        const keys = await cache.keys();
+        const hit = keys.find(k => new URL(k.url).pathname === url.pathname);
+        if (hit) res = await cache.match(hit);
+      }
+
+      if (!res) {
+        try { res = await fetch(req); } catch { /* offline sem cache */ }
+      }
+      if (!res) return new Response('', { status: 404 });
+
+      const buf = await res.arrayBuffer();
+      const size = buf.byteLength;
+
+      const ranges = /bytes=(\d+)-(\d+)?/.exec(rangeHeader);
+      const start = ranges && ranges[1] ? parseInt(ranges[1], 10) : 0;
+      const end = ranges && ranges[2] ? parseInt(ranges[2], 10) : size - 1;
+      const chunk = buf.slice(start, end + 1);
+
+      const headers = new Headers(res.headers);
+      headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
+      headers.set('Accept-Ranges', 'bytes');
+      headers.set('Content-Length', chunk.byteLength);
+      if (!headers.get('Content-Type')) headers.set('Content-Type', 'audio/mpeg');
+
+      return new Response(chunk, { status: 206, statusText: 'Partial Content', headers });
+    })());
+    return;
   }
+
+  // === 2️⃣ Cache-first para todo o resto ===
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(req, { ignoreSearch: true });
+    if (cached) return cached;
+
+    try {
+      const net = await fetch(req);
+      if (req.method === 'GET' && net && net.ok) {
+        cache.put(req, net.clone());
+      }
+      return net;
+    } catch {
+      if (req.mode === 'navigate') return cache.match('./');
+      return new Response('', { status: 503 });
+    }
+  })());
 });
